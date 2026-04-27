@@ -1,0 +1,11 @@
+# Test files
+test_*.py
+*.pyc
+__pycache__/
+
+# Sensitive files
+cookies.json
+
+# Cache
+.cache/
+*.tmp
