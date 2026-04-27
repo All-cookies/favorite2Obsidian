@@ -60,8 +60,10 @@ class XiaohongshuParser(BaseParser):
             )
         self._cookie_str = cookie_str
 
-        # Use resolved URL (may contain xsec_token)
-        page_url = resolved_url if resolved_url != url else f"https://www.xiaohongshu.com/explore/{note_id}"
+        # Build page URL:
+        # - For xhslink.com short links: use resolved URL (which has xsec_token)
+        # - For full URLs: keep original URL to preserve xsec_token
+        page_url = resolved_url if "xhslink.com" in url else url
 
         # Fetch page HTML with cookies
         html = self._fetch_page(page_url, cookie_str)
