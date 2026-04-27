@@ -33,12 +33,15 @@ class XiaohongshuParser(BaseParser):
         }
 
     def detect(self, url: str) -> bool:
-        pattern = r"xiaohongshu\.com/(explore|discovery/item|note)/([a-zA-Z0-9]+)"
+        pattern = r"(xiaohongshu\.com|xhslink\.com)"
         return bool(re.search(pattern, url))
 
     def parse(self, url: str) -> VideoMetadata:
         """Parse 小红书 note metadata via Cookie + __INITIAL_STATE__"""
-        note_id = self._extract_note_id(url)
+        # Resolve short links first (xhslink.com)
+        resolved_url = self._resolve_short_link(url)
+        
+        note_id = self._extract_note_id(resolved_url)
         if not note_id:
             raise ValueError(f"Invalid 小红书 URL: {url}")
 
@@ -57,8 +60,8 @@ class XiaohongshuParser(BaseParser):
             )
         self._cookie_str = cookie_str
 
-        # Build full URL with note_id
-        page_url = f"https://www.xiaohongshu.com/explore/{note_id}"
+        # Use resolved URL (may contain xsec_token)
+        page_url = resolved_url if resolved_url != url else f"https://www.xiaohongshu.com/explore/{note_id}"
 
         # Fetch page HTML with cookies
         html = self._fetch_page(page_url, cookie_str)
@@ -92,6 +95,23 @@ class XiaohongshuParser(BaseParser):
             if match:
                 return match.group(1)
         return None
+
+    def _resolve_short_link(self, url: str) -> str:
+        """Resolve xhslink.com short URL to full URL with xsec_token"""
+        if "xhslink.com" not in url:
+            return url
+        
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        
+        try:
+            req = urllib.request.Request(url)
+            req.add_header("User-Agent", self.headers["User-Agent"])
+            resp = urllib.request.urlopen(req, timeout=10, context=ctx)
+            return resp.url
+        except Exception:
+            return url
 
     def _load_cookies(self) -> str:
         """Load cookies from file and return as cookie string"""
