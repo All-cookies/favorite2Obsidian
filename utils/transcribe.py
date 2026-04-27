@@ -68,7 +68,7 @@ def transcribe_audio(audio_path: str, language: str = "zh") -> str:
         language: Language code (default: zh for Chinese)
         
     Returns:
-        Transcription text
+        Transcription text (converted to Simplified Chinese)
     """
     # Set HF mirror for Chinese users
     os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
@@ -89,6 +89,13 @@ def transcribe_audio(audio_path: str, language: str = "zh") -> str:
     
     # Combine segments
     text = "".join([s.text for s in segments])
+    
+    # Convert Traditional Chinese to Simplified Chinese
+    try:
+        import zhconv
+        text = zhconv.convert(text, "zh-cn")
+    except ImportError:
+        pass  # zhconv not installed, skip conversion
     
     return text.strip()
 
